@@ -362,4 +362,4 @@ def export_expenses():
     return response
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=2020)
+    app.run(debug=True, host='0.0.0.0', port=80)
