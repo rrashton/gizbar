@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Manage Categories{% endblock %}
+{% block content %}
+        <h1>Balance</h1>
+        <table class="table mt-3">
+            <tr>
+                <th>Name</th>
+                <th>Balance</th>
+            </tr>
+            {% for balance in balances %}
+            <tr>
+                <td>{{ balance.name }}</td>
+                <td>₪{{ balance.balance }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endblock %}

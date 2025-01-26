@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Manage Payments{% endblock %}
+
+{% block content %}
+        <h1 class="mb-4">Manage Payments</h1>
+
+        <!-- Form to Add Revenue -->
+        <div class="card p-3">
+            <h3>Add Payment</h3>
+            <form method="POST">
+                <label for="person">Person:</label>
+                <select name="person" class="form-control mt-2">
+                    {% for person in people %}
+                    <option value="{{ person.id }}">{{ person.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="amount" class="mt-3">Amount:</label>
+                <input type="number" name="amount" placeholder="Enter Amount" required class="form-control mt-2">
+
+                <button type="submit" class="btn btn-primary mt-3">Add Payment</button>
+            </form>
+        </div>
+
+        <!-- Revenue List -->
+        <h3 class="mt-4">Payments</h3>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Person</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for revenue in revenues %}
+                <tr>
+                    <td>{{ revenue.person_name }}</td>
+                    <td>₪{{ revenue.amount }}</td>
+                    <td><a href="/delete_revenue/{{ revenue.id }}" class="btn btn-danger">Delete</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+{% endblock %}

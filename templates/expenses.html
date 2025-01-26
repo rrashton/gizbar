@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Manage Expenses{% endblock %}
+
+{% block content %}
+<h1>Manage Expenses</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h3>Add Expense</h3>
+            <form method="POST">
+                <label for="description">Description:</label>
+                <input type="text" name="description" required class="form-control mt-2">
+            
+                <label for="price">Amount:</label>
+                <input type="number" name="price" required class="form-control mt-2">
+            
+                <label for="category">Category:</label>
+                <select name="category" class="form-control mt-2">
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            
+                <label for="payed_by" class="mt-3">Payed by:</label>
+                <select name="payed_by" class="form-control mt-2">
+                    {% for person in people %}
+                    <option value="{{ person.id }}">{{ person.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="date">Date:</label>
+                <input type="date" name="date" class="form-control mt-2">
+            
+                <div class="mt-3">
+                    <input type="checkbox" name="entire_camp" id="entire_camp" checked>
+                    <label for="entire_camp">Entire Camp Expense</label>
+                </div>
+            
+                <div id="people_selection" class="mt-3" style="display: none;">
+                    <label>Select People:</label>
+                    <select name="people" class="form-control mt-2" multiple>
+                        {% for person in people %}
+                        <option value="{{ person.id }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            
+                <button type="submit" class="btn btn-primary mt-3">Add Expense</button>
+            </form>
+            
+            <script>
+                document.getElementById('entire_camp').addEventListener('change', function() {
+                    let peopleSelection = document.getElementById('people_selection');
+                    peopleSelection.style.display = this.checked ? 'none' : 'block';
+                });
+            </script>
+        </div>
+    </div>
+</div>
+
+<h3 class="mt-4">Expense List</h3>
+<table class="table mt-3">
+    <tr>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Payed by</th>
+        <th>Category</th>
+        <th>Audience</th>
+        <th>Date</th>
+        <th>Action</th>
+    </tr>
+    {% for expense in expenses %}
+    <tr>
+        <td>{{ expense.description }}</td>
+        <td>₪{{ expense.price }}</td>
+        <td>{{ expense.payed_by }}</td>
+        <td>{{ expense.category_name }}</td>
+        <td>{{ expense.audience }}</td>
+        <td>{{ expense.date }}</td>
+        <td>
+            <button class="btn btn-warning edit-btn" 
+            data-id="{{ expense.id }}"
+            data-description="{{ expense.description }}"
+            data-price="{{ expense.price }}"
+            data-category="{{ expense.category_id }}"
+            data-audience="{{ expense.audience }}"
+            data-date="{{ expense.date }}">
+        Edit
+    </button>
+    <a href="/delete_expense/{{ expense.id }}" class="btn btn-danger">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<!-- Edit Expense Modal -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1" aria-labelledby="editExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editExpenseModalLabel">Edit Expense</h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editExpenseForm">
+                    <input type="hidden" id="edit_expense_id" name="id">
+                    
+                    <label for="edit_description">Description:</label>
+                    <input type="text" id="edit_description" name="description" required class="form-control mt-2">
+
+                    <label for="edit_price">Amount:</label>
+                    <input type="number" id="edit_price" name="price" required class="form-control mt-2">
+
+                    <label for="edit_category">Category:</label>
+                    <select id="edit_category" name="category" class="form-control mt-2">
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="edit_date">Date:</label>
+                    <input type="date" id="edit_date" name="date" class="form-control mt-2">
+
+                    <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".edit-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            document.getElementById("edit_expense_id").value = this.dataset.id;
+            document.getElementById("edit_description").value = this.dataset.description;
+            document.getElementById("edit_price").value = this.dataset.price;
+            document.getElementById("edit_date").value = this.dataset.date;
+
+            // Set the correct category in the dropdown
+            let categoryDropdown = document.getElementById("edit_category");
+            let selectedCategory = this.dataset.category;
+
+            console.log("Setting category:", selectedCategory); // Debugging
+
+            // Loop through dropdown options and select the correct one
+            for (let option of categoryDropdown.options) {
+                if (option.value === selectedCategory) {
+                    option.selected = true;
+                    break;
+                }
+            }
+
+            // Show the modal
+            let modal = new bootstrap.Modal(document.getElementById("editExpenseModal"));
+            modal.show();
+        });
+    });
+});
+
+        document.getElementById("editExpenseForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            fetch("/update_expense", {
+                method: "POST",
+                body: new FormData(this)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert("Error updating expense");
+                }
+            });
+        });
+    
+</script>
+<script>
+document.getElementById('entire_camp_toggle').addEventListener('change', function() {
+    document.getElementById('person_select').style.display = this.checked ? 'none' : 'block';
+});
+</script>
+{% endblock %}

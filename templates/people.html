@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Manage People{% endblock %}
+{% block content %}
+    <h1>Manage People</h1>
+    <form method="POST">
+        <input type="text" name="name" placeholder="Enter Name" required class="form-control">
+        <button type="submit" class="btn btn-primary mt-2">Add Person</button>
+    </form>
+    <table class="table mt-3">
+        <tr>
+            <th># (total {{ people|length }})</th>
+            <th>Name</th>
+            <th>Action</th>
+        </tr>
+        {% for person in people %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ person.name }}</td>
+            <td><a href="/delete_person/{{ person.id }}" class="btn btn-danger">Delete</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+
+
+    <!-- Enable Bootstrap Toasts Automatically -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var toastElements = document.querySelectorAll(".toast");
+            toastElements.forEach(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            });
+        });
+    </script>
+{% endblock %}
