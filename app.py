@@ -1,13 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, Response, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
-import csv
+from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin, current_user
+import config  # Import the config file
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
+app.secret_key = config.SECRET_KEY  # Use secret key from config.py
 
 db = SQLAlchemy(app)
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Redirect unauthenticated users to login page
+login_manager.session_protection = "strong"
 
 # Many-to-Many Relationship: Expense can have multiple persons involved
 expense_person_association = db.Table(
@@ -17,6 +24,13 @@ expense_person_association = db.Table(
 )
 
 # Models
+# Dummy admin
+class AdminUser(UserMixin):
+    id = 1  # Only one admin user
+
+    def get_id(self):
+        return str(self.id)
+
 class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
@@ -48,7 +62,7 @@ class Revenue(db.Model):
 with app.app_context():
     db.create_all()
 
-# Function to Get    by Category
+# Function to Get by Category
 def get_expenses_by_category():
     expenses = db.session.query(Category.name, db.func.sum(Expense.price)).filter(Expense.entire_camp == True).join(Expense).group_by(Category.id).all()
     categories = [row[0] for row in expenses]
@@ -56,6 +70,7 @@ def get_expenses_by_category():
     return categories, amounts
 
 @app.route('/')
+@login_required
 def index():
     total_people = Person.query.count()
 
@@ -76,8 +91,41 @@ def index():
         amounts=amounts
     )
 
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id == "1":  # Only allow the admin user
+        return AdminUser()  # Return an instance of AdminUser
+    return None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        # Check credentials from config.py
+        if username == config.ADMIN_USERNAME and password == config.ADMIN_PASSWORD:
+            admin = AdminUser()
+            login_user(admin)
+            session.permanent = True  # Ensure session persists
+            flash('Login successful!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid credentials', 'danger')
+
+    return render_template('login.html')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
 # --------------- Manage People ---------------
 @app.route('/people', methods=['GET', 'POST'])
+@login_required
 def manage_people():
     if request.method == 'POST':
         name = request.form['name']
@@ -90,6 +138,7 @@ def manage_people():
 
 
 @app.route('/delete_person/<int:id>')
+@login_required
 def delete_person(id):
     person = Person.query.get(id)
     db.session.delete(person)
@@ -98,6 +147,7 @@ def delete_person(id):
 
 # --------------- Manage Categories ---------------
 @app.route('/categories', methods=['GET', 'POST'])
+@login_required
 def manage_categories():
     if request.method == 'POST':
         name = request.form['name']
@@ -109,6 +159,7 @@ def manage_categories():
     return render_template('categories.html', categories=categories)
 
 @app.route('/delete_category/<int:id>')
+@login_required
 def delete_category(id):
     category = Category.query.get(id)
     db.session.delete(category)
@@ -117,6 +168,7 @@ def delete_category(id):
 
 # --------------- Manage Expenses ---------------
 @app.route('/expenses', methods=['GET', 'POST'])
+@login_required
 def manage_expenses():
     people = Person.query.all()
     categories = Category.query.all()
@@ -175,6 +227,7 @@ def manage_expenses():
     return render_template('expenses.html', expenses=expense_data, people=people, categories=categories)
 
 @app.route('/delete_expense/<int:id>')
+@login_required
 def delete_expense(id):
     expense = Expense.query.get(id)
     db.session.delete(expense)
@@ -182,6 +235,7 @@ def delete_expense(id):
     return redirect(url_for('manage_expenses'))
 
 @app.route('/update_expense', methods=['POST'])
+@login_required
 def update_expense():
     expense_id = request.form.get("id")
     expense = Expense.query.get(expense_id)
@@ -216,6 +270,7 @@ def update_expense():
     
 # --------------- Manage Payments (Revenues) ---------------
 @app.route('/revenues', methods=['GET', 'POST'])
+@login_required
 def manage_revenues():
     people = Person.query.all()
     if request.method == 'POST':
@@ -232,6 +287,7 @@ def manage_revenues():
     return render_template('revenues.html', revenues=revenues, people=people)
 
 @app.route('/delete_revenue/<int:id>')
+@login_required
 def delete_revenue(id):
     revenue = Revenue.query.get(id)
     db.session.delete(revenue)
@@ -240,6 +296,7 @@ def delete_revenue(id):
 
 # --------------- View Balance ---------------
 @app.route('/balance')
+@login_required
 def balance():
     people = Person.query.all()
     balances = []
@@ -284,6 +341,7 @@ def balance():
 
 # --------------- Export Expenses ---------------
 @app.route('/export_expenses')
+@login_required
 def export_expenses():
     expenses = Expense.query.all()
 
