@@ -36,7 +36,7 @@ ADMIN_PASSWORD = "your_password"
 
 python app.py
 
-Access the app in your browser at http://localhost:2020.
+Access the app in your browser at http://localhost
 
 🛠 Tech Stack
 
